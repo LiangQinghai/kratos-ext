@@ -62,12 +62,12 @@ func NewServer(opts ...ServerOption) *Server {
 	c := fiber.Config{
 		Prefork: srv.prefork,
 	}
-	srv.App = fiber.New(c)
+	srv.app = fiber.New(c)
 	return srv
 }
 
 type Server struct {
-	*fiber.App
+	app        *fiber.App
 	lis        net.Listener
 	tlsConf    *tls.Config
 	endpoint   *url.URL
@@ -84,13 +84,13 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 	if s.tlsConf != nil {
-		return s.ListenTLS(s.address, "", "")
+		return s.app.ListenTLS(s.address, "", "")
 	}
-	return s.Listener(s.lis)
+	return s.app.Listener(s.lis)
 }
 
 func (s *Server) Stop(ctx context.Context) error {
-	return s.ShutdownWithContext(ctx)
+	return s.app.ShutdownWithContext(ctx)
 }
 
 func (s *Server) Endpoint() (*url.URL, error) {
@@ -106,6 +106,10 @@ func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path stri
 		return middleware.Chain(s.middleware.Match(tr.Operation())...)(m)
 	}
 	return middleware.Chain(s.middleware.Match(path)...)(m)
+}
+
+func (s *Server) Group(prefix string) fiber.Router {
+	return s.app.Group(prefix)
 }
 
 func (s *Server) listenAndEndpoint() error {

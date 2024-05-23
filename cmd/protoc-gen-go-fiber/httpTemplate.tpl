@@ -14,73 +14,40 @@ type {{.ServiceType}}HTTPServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}HTTPServer(s *http.Server, srv {{.ServiceType}}HTTPServer) {
-	r := s.Route("/")
+func Register{{.ServiceType}}HTTPServer(s *tfiber.Server, srv {{.ServiceType}}HTTPServer) {
+	r := s.Group("/")
 	{{- range .Methods}}
-	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv))
+	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(s, srv))
 	{{- end}}
 }
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(srv {{$svrType}}HTTPServer) func(ctx http.Context) error {
-	return func(ctx http.Context) error {
+func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(s *tfiber.Server, srv {{$svrType}}HTTPServer) tfiber.Handler {
+	return func(ctx *tfiber.Ctx) error {
 		var in {{.Request}}
 		{{- if .HasBody}}
-		if err := ctx.Bind(&in{{.Body}}); err != nil {
+		if err := ctx.BodyParser(&in{{.Body}}); err != nil {
 			return err
 		}
 		{{- end}}
-		if err := ctx.BindQuery(&in); err != nil {
+		if err := ctx.QueryParser(&in); err != nil {
 			return err
 		}
 		{{- if .HasVars}}
-		if err := ctx.BindVars(&in); err != nil {
+		if err := ctx.ParamsParser(&in); err != nil {
 			return err
 		}
 		{{- end}}
-		http.SetOperation(ctx,Operation{{$svrType}}{{.OriginalName}})
+		tfiber.SetOperation(ctx.UserContext(),Operation{{$svrType}}{{.OriginalName}})
 		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
 			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
 		})
-		out, err := h(ctx, &in)
+		out, err := h(ctx.UserContext(), &in)
 		if err != nil {
 			return err
 		}
 		reply := out.(*{{.Reply}})
-		return ctx.Result(200, reply{{.ResponseBody}})
+		return ctx.JSON(reply)
 	}
-}
-{{end}}
-
-type {{.ServiceType}}HTTPClient interface {
-{{- range .MethodSets}}
-	{{.Name}}(ctx context.Context, req *{{.Request}}, opts ...http.CallOption) (rsp *{{.Reply}}, err error)
-{{- end}}
-}
-
-type {{.ServiceType}}HTTPClientImpl struct{
-	cc *http.Client
-}
-
-func New{{.ServiceType}}HTTPClient (client *http.Client) {{.ServiceType}}HTTPClient {
-	return &{{.ServiceType}}HTTPClientImpl{client}
-}
-
-{{range .MethodSets}}
-func (c *{{$svrType}}HTTPClientImpl) {{.Name}}(ctx context.Context, in *{{.Request}}, opts ...http.CallOption) (*{{.Reply}}, error) {
-	var out {{.Reply}}
-	pattern := "{{.Path}}"
-	path := binding.EncodeURL(pattern, in, {{not .HasBody}})
-	opts = append(opts, http.Operation(Operation{{$svrType}}{{.OriginalName}}))
-	opts = append(opts, http.PathTemplate(pattern))
-	{{if .HasBody -}}
-	err := c.cc.Invoke(ctx, "{{.Method}}", path, in{{.Body}}, &out{{.ResponseBody}}, opts...)
-	{{else -}}
-	err := c.cc.Invoke(ctx, "{{.Method}}", path, nil, &out{{.ResponseBody}}, opts...)
-	{{end -}}
-	if err != nil {
-		return nil, err
-	}
-	return &out, nil
 }
 {{end}}

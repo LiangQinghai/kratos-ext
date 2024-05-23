@@ -2,7 +2,6 @@ package tfiber
 
 import (
 	"context"
-	"github.com/gofiber/fiber/v2"
 )
 
 func RegisterOrderApiFiberServer(s *Server, srv any) {
@@ -10,8 +9,8 @@ func RegisterOrderApiFiberServer(s *Server, srv any) {
 	r.Post("/index", _OrderApi_QueryItemOrderInfo0_HTTP_Handler(s, srv))
 }
 
-func _OrderApi_QueryItemOrderInfo0_HTTP_Handler(s *Server, srv any) fiber.Handler {
-	return func(ctx *fiber.Ctx) error {
+func _OrderApi_QueryItemOrderInfo0_HTTP_Handler(s *Server, srv any) Handler {
+	return func(ctx *Ctx) error {
 		var in map[string]any
 		if err := ctx.QueryParser(in); err != nil {
 			return err
