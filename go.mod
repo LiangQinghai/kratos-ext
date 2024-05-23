@@ -1,3 +1,3 @@
-module github.com/LiangQinghai/kratos-advance
+module github.com/LiangQinghai/kratos-ext
 
 go 1.22
