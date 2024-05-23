@@ -5,6 +5,8 @@ import (
 	"crypto/tls"
 	"github.com/LiangQinghai/kratos-advance/transport/tfiber/internal/endpoint"
 	"github.com/LiangQinghai/kratos-advance/transport/tfiber/internal/host"
+	"github.com/LiangQinghai/kratos-advance/transport/tfiber/internal/matcher"
+	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/gofiber/fiber/v2"
 	"net"
@@ -66,13 +68,14 @@ func NewServer(opts ...ServerOption) *Server {
 
 type Server struct {
 	*fiber.App
-	lis      net.Listener
-	tlsConf  *tls.Config
-	endpoint *url.URL
-	err      error
-	network  string
-	address  string
-	prefork  bool
+	lis        net.Listener
+	tlsConf    *tls.Config
+	endpoint   *url.URL
+	err        error
+	network    string
+	address    string
+	prefork    bool
+	middleware matcher.Matcher
 }
 
 func (s *Server) Start(ctx context.Context) error {
@@ -80,7 +83,7 @@ func (s *Server) Start(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	if s.tlsConf == nil {
+	if s.tlsConf != nil {
 		return s.ListenTLS(s.address, "", "")
 	}
 	return s.Listener(s.lis)
@@ -96,6 +99,13 @@ func (s *Server) Endpoint() (*url.URL, error) {
 		return nil, err
 	}
 	return s.endpoint, nil
+}
+
+func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path string) middleware.Handler {
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		return middleware.Chain(s.middleware.Match(tr.Operation())...)(m)
+	}
+	return middleware.Chain(s.middleware.Match(path)...)(m)
 }
 
 func (s *Server) listenAndEndpoint() error {
