@@ -52,9 +52,10 @@ func Prefork(prefork bool) ServerOption {
 
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
-		network: "tcp",
-		address: ":0",
-		prefork: false,
+		network:    "tcp",
+		address:    ":0",
+		prefork:    false,
+		middleware: matcher.New(),
 	}
 	for _, opt := range opts {
 		opt(srv)
