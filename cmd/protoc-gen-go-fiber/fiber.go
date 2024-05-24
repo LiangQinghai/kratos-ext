@@ -197,7 +197,7 @@ func buildMethodDesc(g *protogen.GeneratedFile, m *protogen.Method, method, path
 		Reply:        g.QualifiedGoIdent(m.Output.GoIdent),
 		Comment:      comment,
 		Path:         path,
-		Method:       method,
+		Method:       camelCase(method),
 		HasVars:      len(vars) > 0,
 	}
 }
