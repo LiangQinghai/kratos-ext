@@ -15,7 +15,7 @@ import (
 
 const (
 	contextPackage       = protogen.GoImportPath("context")
-	transportHTTPPackage = protogen.GoImportPath("github.com/LiangQinghai/kratos-advance/transport/tfiber")
+	transportHTTPPackage = protogen.GoImportPath("github.com/LiangQinghai/kratos-ext/transport/tfiber")
 	deprecationComment   = "// Deprecated: Do not use."
 )
 
