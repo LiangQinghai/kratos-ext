@@ -54,12 +54,12 @@ func newBindHandler() fiber.Handler {
 func TestServer(t *testing.T) {
 	ctx := context.Background()
 	srv := NewServer()
-	srv.All("/index", newHandleFuncWrapper())
-	srv.All("/index/:id<int>", newHandleFuncWrapper())
-	srv.Route("/test/prefix", func(router fiber.Router) {
+	srv.Group("").All("/index", newHandleFuncWrapper())
+	srv.Group("").All("/index/:id<int>", newHandleFuncWrapper())
+	srv.Group("").Route("/test/prefix", func(router fiber.Router) {
 		router.Use(newHandleFuncWrapper())
 	})
-	srv.All("/bind/:path", newBindHandler())
+	srv.Group("").All("/bind/:path", newBindHandler())
 	srv.Group("/errors").Get("/cause", func(ctx *fiber.Ctx) error {
 		return kratoserrors.BadRequest(
 			"xxx",

@@ -2,7 +2,7 @@
 {{$svrName := .ServiceName}}
 
 {{- range .MethodSets}}
-const Operation{{$svrType}}{{.OriginalName}} = "/{{$svrName}}/{{.OriginalName}}"
+const FiberOperation{{$svrType}}{{.OriginalName}} = "/{{$svrName}}/{{.OriginalName}}"
 {{- end}}
 
 type {{.ServiceType}}FiberServer interface {
@@ -38,8 +38,8 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s *tfiber.Server, srv {{$svrT
 			return err
 		}
 		{{- end}}
-		tfiber.SetOperation(ctx.UserContext(),Operation{{$svrType}}{{.OriginalName}})
-		h := ctx.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
+		tfiber.SetOperation(ctx.UserContext(),FiberOperation{{$svrType}}{{.OriginalName}})
+		h := s.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
 			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
 		})
 		out, err := h(ctx.UserContext(), &in)
