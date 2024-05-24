@@ -47,7 +47,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s *tfiber.Server, srv {{$svrT
 			return err
 		}
 		reply := out.(*{{.Reply}})
-		return ctx.JSON(reply)
+		return s.Write(ctx, reply)
 	}
 }
 {{end}}

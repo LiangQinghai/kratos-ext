@@ -16,7 +16,6 @@ import (
 var (
 	_ transport.Server     = (*Server)(nil)
 	_ transport.Endpointer = (*Server)(nil)
-	//_ fiber.Handler        = (*Server)(nil)
 )
 
 // ServerOption is a fiber framework option
@@ -50,24 +49,56 @@ func Prefork(prefork bool) ServerOption {
 	}
 }
 
+// Middleware with service middleware option.
+func Middleware(m ...middleware.Middleware) ServerOption {
+	return func(o *Server) {
+		o.middleware.Use(m...)
+	}
+}
+
+// ResponseEncoder with response encoder.
+func ResponseEncoder(en EncodeResponseFunc) ServerOption {
+	return func(o *Server) {
+		o.enc = en
+	}
+}
+
+// ErrorEncoder with error encoder.
+func ErrorEncoder(en EncodeErrorFunc) ServerOption {
+	return func(o *Server) {
+		o.ene = en
+	}
+}
+
+// AppName set server app name
+func AppName(name string) ServerOption {
+	return func(s *Server) {
+		s.appName = name
+	}
+}
+
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
 		network:    "tcp",
 		address:    ":0",
 		prefork:    false,
 		middleware: matcher.New(),
+		enc:        DefaultResponseEncoder,
+		ene:        DefaultErrorEncoder,
 	}
 	for _, opt := range opts {
 		opt(srv)
 	}
 	c := fiber.Config{
-		Prefork: srv.prefork,
+		Prefork:      srv.prefork,
+		ErrorHandler: srv.ene,
 	}
 	srv.app = fiber.New(c)
 	return srv
 }
 
 type Server struct {
+	appName    string
 	app        *fiber.App
 	lis        net.Listener
 	tlsConf    *tls.Config
@@ -77,6 +108,8 @@ type Server struct {
 	address    string
 	prefork    bool
 	middleware matcher.Matcher
+	enc        EncodeResponseFunc
+	ene        EncodeErrorFunc
 }
 
 func (s *Server) Start(ctx context.Context) error {
@@ -111,6 +144,11 @@ func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path stri
 
 func (s *Server) Group(prefix string) fiber.Router {
 	return s.app.Group(prefix)
+}
+
+// Write response data encode
+func (s *Server) Write(ctx *Ctx, v any) error {
+	return s.enc(ctx, v)
 }
 
 func (s *Server) listenAndEndpoint() error {
