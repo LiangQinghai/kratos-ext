@@ -5,7 +5,7 @@
 const Operation{{$svrType}}{{.OriginalName}} = "/{{$svrName}}/{{.OriginalName}}"
 {{- end}}
 
-type {{.ServiceType}}HTTPServer interface {
+type {{.ServiceType}}FiberServer interface {
 {{- range .MethodSets}}
 	{{- if ne .Comment ""}}
 	{{.Comment}}
@@ -14,15 +14,15 @@ type {{.ServiceType}}HTTPServer interface {
 {{- end}}
 }
 
-func Register{{.ServiceType}}HTTPServer(s *tfiber.Server, srv {{.ServiceType}}HTTPServer) {
+func Register{{.ServiceType}}FiberServer(s *tfiber.Server, srv {{.ServiceType}}FiberServer) {
 	r := s.Group("/")
 	{{- range .Methods}}
-	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(s, srv))
+	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s, srv))
 	{{- end}}
 }
 
 {{range .Methods}}
-func _{{$svrType}}_{{.Name}}{{.Num}}_HTTP_Handler(s *tfiber.Server, srv {{$svrType}}HTTPServer) tfiber.Handler {
+func _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s *tfiber.Server, srv {{$svrType}}FiberServer) tfiber.Handler {
 	return func(ctx *tfiber.Ctx) error {
 		var in {{.Request}}
 		{{- if .HasBody}}

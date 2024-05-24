@@ -8,6 +8,8 @@ import (
 
 const (
 	KindFiber transport.Kind = "fiber"
+	// SupportPackageIsVersion1 These constants should not be referenced from any other code.
+	SupportPackageIsVersion1 = true
 )
 
 type Transport struct {
