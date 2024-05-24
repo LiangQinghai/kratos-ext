@@ -129,7 +129,10 @@ func (s *Server) Start(ctx context.Context) error {
 		return err
 	}
 	if s.tlsConf != nil {
-		return s.app.ListenTLS(s.address, "", "")
+		return s.app.ListenTLSWithCertificate(s.address, s.tlsConf.Certificates[0])
+	}
+	if s.prefork {
+		return s.app.Listen(s.address)
 	}
 	return s.app.Listener(s.lis)
 }
