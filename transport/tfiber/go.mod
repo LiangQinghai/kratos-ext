@@ -1,4 +1,4 @@
-module github.com/LiangQinghai/kratos-advance/transport/tfiber
+module github.com/LiangQinghai/kratos-ext/transport/tfiber
 
 go 1.22
 
