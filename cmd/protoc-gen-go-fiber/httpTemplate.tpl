@@ -41,7 +41,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s *tfiber.Server, srv {{$svrT
 		tfiber.SetOperation(ctx.UserContext(),FiberOperation{{$svrType}}{{.OriginalName}})
 		h := s.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
 			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
-		})
+		}, ctx.UserContext(), ctx.Path())
 		out, err := h(ctx.UserContext(), &in)
 		if err != nil {
 			return err
