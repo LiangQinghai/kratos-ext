@@ -161,7 +161,6 @@ func buildMethodDesc(g *protogen.GeneratedFile, m *protogen.Method, method, path
 
 		if s != nil {
 			path = replacePath(v, *s, path)
-			path = replacePathWithFiber(path)
 		}
 		for _, field := range strings.Split(v, ".") {
 			if strings.TrimSpace(field) == "" {
@@ -195,7 +194,7 @@ func buildMethodDesc(g *protogen.GeneratedFile, m *protogen.Method, method, path
 		Request:      g.QualifiedGoIdent(m.Input.GoIdent),
 		Reply:        g.QualifiedGoIdent(m.Output.GoIdent),
 		Comment:      comment,
-		Path:         path,
+		Path:         replacePathWithFiber(path),
 		Method:       method,
 		HasVars:      len(vars) > 0,
 	}
