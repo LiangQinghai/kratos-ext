@@ -7,7 +7,6 @@ import (
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/types/descriptorpb"
-	"net/http"
 	"os"
 	"regexp"
 	"strings"
@@ -81,7 +80,7 @@ func genService(_ *protogen.Plugin, file *protogen.File, g *protogen.GeneratedFi
 			sd.Methods = append(sd.Methods, buildHTTPRule(g, service, method, rule, omitemptyPrefix))
 		} else if !omitempty {
 			path := fmt.Sprintf("%s/%s/%s", omitemptyPrefix, service.Desc.FullName(), method.Desc.Name())
-			sd.Methods = append(sd.Methods, buildMethodDesc(g, method, http.MethodPost, path))
+			sd.Methods = append(sd.Methods, buildMethodDesc(g, method, MethodPost, path))
 		}
 	}
 	if len(sd.Methods) != 0 {
@@ -100,25 +99,25 @@ func buildHTTPRule(g *protogen.GeneratedFile, service *protogen.Service, m *prot
 	switch pattern := rule.Pattern.(type) {
 	case *annotations.HttpRule_Get:
 		path = pattern.Get
-		method = http.MethodGet
+		method = MethodGet
 	case *annotations.HttpRule_Put:
 		path = pattern.Put
-		method = http.MethodPut
+		method = MethodPut
 	case *annotations.HttpRule_Post:
 		path = pattern.Post
-		method = http.MethodPost
+		method = MethodPost
 	case *annotations.HttpRule_Delete:
 		path = pattern.Delete
-		method = http.MethodDelete
+		method = MethodDelete
 	case *annotations.HttpRule_Patch:
 		path = pattern.Patch
-		method = http.MethodPatch
+		method = MethodPatch
 	case *annotations.HttpRule_Custom:
 		path = pattern.Custom.Path
 		method = pattern.Custom.Kind
 	}
 	if method == "" {
-		method = http.MethodPost
+		method = MethodPost
 	}
 	if path == "" {
 		path = fmt.Sprintf("%s/%s/%s", omitemptyPrefix, service.Desc.FullName(), m.Desc.Name())
@@ -126,7 +125,7 @@ func buildHTTPRule(g *protogen.GeneratedFile, service *protogen.Service, m *prot
 	body = rule.Body
 	responseBody = rule.ResponseBody
 	md := buildMethodDesc(g, m, method, path)
-	if method == http.MethodGet || method == http.MethodDelete {
+	if method == MethodGet || method == MethodDelete {
 		if body != "" {
 			_, _ = fmt.Fprintf(os.Stderr, "\u001B[31mWARN\u001B[m: %s %s body should not be declared.\n", method, path)
 		}
@@ -197,7 +196,7 @@ func buildMethodDesc(g *protogen.GeneratedFile, m *protogen.Method, method, path
 		Reply:        g.QualifiedGoIdent(m.Output.GoIdent),
 		Comment:      comment,
 		Path:         path,
-		Method:       camelCase(method),
+		Method:       method,
 		HasVars:      len(vars) > 0,
 	}
 }
