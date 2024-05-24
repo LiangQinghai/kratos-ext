@@ -11,6 +11,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"net"
 	"net/url"
+	"time"
 )
 
 var (
@@ -77,6 +78,13 @@ func AppName(name string) ServerOption {
 	}
 }
 
+// RawMiddleware fiber mid
+func RawMiddleware(h ...fiber.Handler) ServerOption {
+	return func(s *Server) {
+		s.rawMid = append(s.rawMid, h...)
+	}
+}
+
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
 		network:    "tcp",
@@ -85,6 +93,7 @@ func NewServer(opts ...ServerOption) *Server {
 		middleware: matcher.New(),
 		enc:        DefaultResponseEncoder,
 		ene:        DefaultErrorEncoder,
+		timeout:    3 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(srv)
@@ -106,8 +115,10 @@ type Server struct {
 	err        error
 	network    string
 	address    string
+	timeout    time.Duration
 	prefork    bool
 	middleware matcher.Matcher
+	rawMid     []fiber.Handler
 	enc        EncodeResponseFunc
 	ene        EncodeErrorFunc
 }
@@ -143,7 +154,13 @@ func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path stri
 }
 
 func (s *Server) Group(prefix string) fiber.Router {
-	return s.app.Group(prefix)
+	r := s.app.Use(s.transportMid())
+	if s.rawMid != nil && len(s.rawMid) > 0 {
+		for _, h := range s.rawMid {
+			r = s.app.Use(h)
+		}
+	}
+	return r.Group(prefix)
 }
 
 // Write response data encode
@@ -169,4 +186,27 @@ func (s *Server) listenAndEndpoint() error {
 		s.endpoint = endpoint.NewEndpoint(endpoint.Scheme("http", s.tlsConf != nil), addr)
 	}
 	return s.err
+}
+
+func (s *Server) transportMid() fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		var (
+			ctx    context.Context
+			cancel context.CancelFunc
+		)
+		if s.timeout > 0 {
+			ctx, cancel = context.WithTimeout(c.UserContext(), s.timeout)
+		} else {
+			ctx, cancel = context.WithCancel(c.UserContext())
+		}
+		defer cancel()
+		tr := Transport{
+			endpoint:    s.endpoint.String(),
+			reqHeader:   c.GetReqHeaders(),
+			replyHeader: c.GetRespHeaders(),
+			request:     c.Request(),
+		}
+		c.SetUserContext(transport.NewServerContext(ctx, &tr))
+		return c.Next()
+	}
 }
