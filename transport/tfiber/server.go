@@ -172,7 +172,7 @@ func (s *Server) Write(ctx *Ctx, v any) error {
 }
 
 func (s *Server) listenAndEndpoint() error {
-	if s.lis == nil {
+	if !s.prefork && s.lis == nil {
 		lis, err := net.Listen(s.network, s.address)
 		if err != nil {
 			s.err = err
