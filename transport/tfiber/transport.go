@@ -44,7 +44,10 @@ func (t *Transport) ReplyHeader() transport.Header {
 type headerCarrier map[string][]string
 
 func (h headerCarrier) Get(key string) string {
-	return h[key][0]
+	if v, ok := h[key]; ok {
+		return v[0]
+	}
+	return ""
 }
 
 func (h headerCarrier) Set(key string, value string) {
@@ -52,7 +55,11 @@ func (h headerCarrier) Set(key string, value string) {
 }
 
 func (h headerCarrier) Add(key string, value string) {
-	h[key] = append(h[key], value)
+	if _, ok := h[key]; ok {
+		h[key] = append(h[key], value)
+	} else {
+		h[key] = []string{value}
+	}
 }
 
 func (h headerCarrier) Keys() []string {
