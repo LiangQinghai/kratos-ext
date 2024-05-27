@@ -3,6 +3,7 @@ module github.com/LiangQinghai/kratos-ext/transport/tfiber
 go 1.22
 
 require (
+	github.com/LiangQinghai/kratos-ext v0.0.0-20240527023810-fcc6a637dc1b
 	github.com/go-kratos/kratos/v2 v2.7.3
 	github.com/gofiber/fiber/v2 v2.52.4
 )
@@ -30,3 +31,5 @@ require (
 	google.golang.org/protobuf v1.34.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/LiangQinghai/kratos-ext => ../../

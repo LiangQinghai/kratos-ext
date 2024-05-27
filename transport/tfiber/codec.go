@@ -1,7 +1,7 @@
 package tfiber
 
 import (
-	"github.com/LiangQinghai/kratos-ext/transport/tfiber/internal/httputil"
+	"github.com/LiangQinghai/kratos-ext/pkg/httputil"
 	"github.com/go-kratos/kratos/v2/encoding"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/gofiber/fiber/v2"

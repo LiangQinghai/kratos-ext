@@ -3,9 +3,9 @@ package tfiber
 import (
 	"context"
 	"crypto/tls"
-	"github.com/LiangQinghai/kratos-ext/transport/tfiber/internal/endpoint"
-	"github.com/LiangQinghai/kratos-ext/transport/tfiber/internal/host"
-	"github.com/LiangQinghai/kratos-ext/transport/tfiber/internal/matcher"
+	"github.com/LiangQinghai/kratos-ext/pkg/endpoint"
+	"github.com/LiangQinghai/kratos-ext/pkg/host"
+	"github.com/LiangQinghai/kratos-ext/pkg/matcher"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/gofiber/fiber/v2"
