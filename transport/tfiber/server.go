@@ -45,7 +45,7 @@ func Endpoint(endpoint *url.URL) ServerOption {
 // Prefork with prefork
 func Prefork(prefork bool) ServerOption {
 	return func(s *Server) {
-		s.prefork = prefork
+		s.fiberConfig.Prefork = prefork
 	}
 }
 
@@ -66,7 +66,7 @@ func ResponseEncoder(en EncodeResponseFunc) ServerOption {
 // ErrorEncoder with error encoder.
 func ErrorEncoder(en EncodeErrorFunc) ServerOption {
 	return func(o *Server) {
-		o.ene = en
+		o.fiberConfig.ErrorHandler = en
 	}
 }
 
@@ -84,44 +84,47 @@ func RawMiddleware(h ...fiber.Handler) ServerOption {
 	}
 }
 
+// FiberConfig fiber config
+func FiberConfig(c *fiber.Config) ServerOption {
+	return func(s *Server) {
+
+	}
+}
+
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
 		network:    "tcp",
 		address:    ":0",
-		prefork:    false,
 		middleware: matcher.New(),
 		enc:        DefaultResponseEncoder,
-		ene:        DefaultErrorEncoder,
 		timeout:    3 * time.Second,
+		fiberConfig: &fiber.Config{
+			ErrorHandler: DefaultErrorEncoder,
+		},
 	}
 	for _, opt := range opts {
 		opt(srv)
 	}
-	c := fiber.Config{
-		Prefork:      srv.prefork,
-		ErrorHandler: srv.ene,
-	}
-	srv.app = fiber.New(c)
+	srv.app = fiber.New(*srv.fiberConfig)
 	return srv
 }
 
 type Server struct {
-	appName    string
-	app        *fiber.App
-	tlsConf    *tls.Config
-	endpoint   *url.URL
-	err        error
-	network    string
-	address    string
-	timeout    time.Duration
-	prefork    bool
-	middleware matcher.Matcher
-	rawMid     []fiber.Handler
-	enc        EncodeResponseFunc
-	ene        EncodeErrorFunc
+	appName     string
+	app         *fiber.App
+	tlsConf     *tls.Config
+	endpoint    *url.URL
+	err         error
+	network     string
+	address     string
+	timeout     time.Duration
+	middleware  matcher.Matcher
+	rawMid      []fiber.Handler
+	enc         EncodeResponseFunc
+	fiberConfig *fiber.Config
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(_ context.Context) error {
 	err := s.initEndpoint()
 	if err != nil {
 		return err
@@ -164,6 +167,11 @@ func (s *Server) Group(prefix string) fiber.Router {
 // Write response data encode
 func (s *Server) Write(ctx *Ctx, v any) error {
 	return s.enc(ctx, v)
+}
+
+// Static fiber static file server handler
+func (s *Server) Static(prefix, root string, config ...fiber.Static) fiber.Router {
+	return s.app.Static(prefix, root, config...)
 }
 
 func (s *Server) initEndpoint() error {
