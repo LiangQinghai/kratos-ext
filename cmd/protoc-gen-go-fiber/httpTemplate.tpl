@@ -15,7 +15,7 @@ type {{.ServiceType}}FiberServer interface {
 }
 
 func Register{{.ServiceType}}FiberServer(s *tfiber.Server, srv {{.ServiceType}}FiberServer) {
-	r := s.Group("/")
+	r := s.Router()
 	{{- range .Methods}}
 	r.{{.Method}}("{{.Path}}", _{{$svrType}}_{{.Name}}{{.Num}}_Fiber_Handler(s, srv))
 	{{- end}}

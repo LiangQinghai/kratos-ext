@@ -51,29 +51,29 @@ func Prefork(prefork bool) ServerOption {
 
 // Middleware with service middleware option.
 func Middleware(m ...middleware.Middleware) ServerOption {
-	return func(o *Server) {
-		o.middleware.Use(m...)
+	return func(s *Server) {
+		s.middleware.Use(m...)
 	}
 }
 
 // ResponseEncoder with response encoder.
 func ResponseEncoder(en EncodeResponseFunc) ServerOption {
-	return func(o *Server) {
-		o.enc = en
+	return func(s *Server) {
+		s.enc = en
 	}
 }
 
 // ErrorEncoder with error encoder.
 func ErrorEncoder(en EncodeErrorFunc) ServerOption {
-	return func(o *Server) {
-		o.fiberConfig.ErrorHandler = en
+	return func(s *Server) {
+		s.fiberConfig.ErrorHandler = en
 	}
 }
 
 // AppName set server app name
 func AppName(name string) ServerOption {
 	return func(s *Server) {
-		s.appName = name
+		s.fiberConfig.AppName = name
 	}
 }
 
@@ -110,7 +110,6 @@ func NewServer(opts ...ServerOption) *Server {
 }
 
 type Server struct {
-	appName     string
 	app         *fiber.App
 	tlsConf     *tls.Config
 	endpoint    *url.URL
@@ -147,6 +146,11 @@ func (s *Server) Endpoint() (*url.URL, error) {
 	return s.endpoint, nil
 }
 
+// Middleware mid handler
+// m: middleware.Handler kratos middleware
+// ctx: context.Context
+// path: router path
+// returns: middleware.Handler
 func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path string) middleware.Handler {
 	if tr, ok := transport.FromServerContext(ctx); ok {
 		return middleware.Chain(s.middleware.Match(tr.Operation())...)(m)
@@ -154,17 +158,26 @@ func (s *Server) Middleware(m middleware.Handler, ctx context.Context, path stri
 	return middleware.Chain(s.middleware.Match(path)...)(m)
 }
 
-func (s *Server) Group(prefix string) fiber.Router {
+// Group router group, it will use Router function
+// returns: fiber.Router
+func (s *Server) Group(prefix string, h ...Handler) fiber.Router {
+	return s.Router().Group(prefix, h...)
+}
+
+// Router new router, use transportMid function and rawMid
+// returns: fiber.Router
+func (s *Server) Router() fiber.Router {
 	r := s.app.Use(s.transportMid())
 	if s.rawMid != nil && len(s.rawMid) > 0 {
 		for _, h := range s.rawMid {
 			r = s.app.Use(h)
 		}
 	}
-	return r.Group(prefix)
+	return r
 }
 
 // Write response data encode
+// returns error
 func (s *Server) Write(ctx *Ctx, v any) error {
 	return s.enc(ctx, v)
 }
