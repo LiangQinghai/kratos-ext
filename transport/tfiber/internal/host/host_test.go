@@ -66,7 +66,7 @@ func TestExtract(t *testing.T) {
 	}
 	for _, test := range tests {
 		t.Run(test.addr, func(t *testing.T) {
-			res, err := Extract(test.addr, nil)
+			res, err := Extract(test.addr)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -79,11 +79,11 @@ func TestExtract(t *testing.T) {
 	if err != nil {
 		t.Errorf("expected: %v got %v", nil, err)
 	}
-	res, err := Extract("", lis)
+	res, err := Extract("")
 	if err != nil {
 		t.Errorf("expected: %v got %v", nil, err)
 	}
-	expect, err := Extract(lis.Addr().String(), nil)
+	expect, err := Extract(lis.Addr().String())
 	if err != nil {
 		t.Errorf("expected: %v got %v", nil, err)
 	}
@@ -94,11 +94,7 @@ func TestExtract(t *testing.T) {
 
 func TestExtract2(t *testing.T) {
 	addr := "localhost:9001"
-	lis, err := net.Listen("tcp", addr)
-	if err != nil {
-		t.Errorf("expected: %v got %v", nil, err)
-	}
-	res, err := Extract(addr, lis)
+	res, err := Extract(addr)
 	if err != nil {
 		t.Errorf("expected: %v got %v", nil, err)
 	}

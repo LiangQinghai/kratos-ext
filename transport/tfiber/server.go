@@ -9,7 +9,6 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/gofiber/fiber/v2"
-	"net"
 	"net/url"
 	"time"
 )
@@ -109,7 +108,6 @@ func NewServer(opts ...ServerOption) *Server {
 type Server struct {
 	appName    string
 	app        *fiber.App
-	lis        net.Listener
 	tlsConf    *tls.Config
 	endpoint   *url.URL
 	err        error
@@ -124,17 +122,14 @@ type Server struct {
 }
 
 func (s *Server) Start(ctx context.Context) error {
-	err := s.listenAndEndpoint()
+	err := s.initEndpoint()
 	if err != nil {
 		return err
 	}
 	if s.tlsConf != nil {
 		return s.app.ListenTLSWithCertificate(s.address, s.tlsConf.Certificates[0])
 	}
-	if s.prefork {
-		return s.app.Listen(s.address)
-	}
-	return s.app.Listener(s.lis)
+	return s.app.Listen(s.address)
 }
 
 func (s *Server) Stop(ctx context.Context) error {
@@ -142,7 +137,7 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 func (s *Server) Endpoint() (*url.URL, error) {
-	err := s.listenAndEndpoint()
+	err := s.initEndpoint()
 	if err != nil {
 		return nil, err
 	}
@@ -171,17 +166,9 @@ func (s *Server) Write(ctx *Ctx, v any) error {
 	return s.enc(ctx, v)
 }
 
-func (s *Server) listenAndEndpoint() error {
-	if !s.prefork && s.lis == nil {
-		lis, err := net.Listen(s.network, s.address)
-		if err != nil {
-			s.err = err
-			return err
-		}
-		s.lis = lis
-	}
+func (s *Server) initEndpoint() error {
 	if s.endpoint == nil {
-		addr, err := host.Extract(s.address, s.lis)
+		addr, err := host.Extract(s.address)
 		if err != nil {
 			s.err = err
 			return err
