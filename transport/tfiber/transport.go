@@ -3,7 +3,6 @@ package tfiber
 import (
 	"context"
 	"github.com/go-kratos/kratos/v2/transport"
-	"github.com/gofiber/fiber/v2"
 )
 
 const (
@@ -17,7 +16,7 @@ type Transport struct {
 	operation   string
 	reqHeader   headerCarrier
 	replyHeader headerCarrier
-	request     *fiber.Request
+	reqCtx      *Ctx
 }
 
 func (t *Transport) Kind() transport.Kind {
@@ -84,10 +83,10 @@ func SetOperation(ctx context.Context, op string) {
 }
 
 // RequestFromServerContext returns request from context.
-func RequestFromServerContext(ctx context.Context) (*fiber.Request, bool) {
+func RequestFromServerContext(ctx context.Context) (*Ctx, bool) {
 	if tr, ok := transport.FromServerContext(ctx); ok {
 		if tr, ok := tr.(*Transport); ok {
-			return tr.request, true
+			return tr.reqCtx, true
 		}
 	}
 	return nil, false

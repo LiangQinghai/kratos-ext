@@ -194,7 +194,7 @@ func (s *Server) transportMid() fiber.Handler {
 			endpoint:    s.endpoint.String(),
 			reqHeader:   c.GetReqHeaders(),
 			replyHeader: c.GetRespHeaders(),
-			request:     c.Request(),
+			reqCtx:      c,
 		}
 		c.SetUserContext(transport.NewServerContext(ctx, &tr))
 		return c.Next()
