@@ -23,7 +23,7 @@ func Register{{.ServiceType}}HertzServer(s *thertz.Server, srv {{.ServiceType}}H
 
 {{range .Methods}}
 func _{{$svrType}}_{{.Name}}{{.Num}}_Hertz_Handler(s *thertz.Server, srv {{$svrType}}HertzServer) thertz.Handler {
-	return func(c context.Context, ctx *ReqCtx) {
+	return func(c context.Context, ctx *thertz.ReqCtx) {
 		var in {{.Request}}
 		{{- if .HasBody}}
 		if err := ctx.Bind(&in{{.Body}}); err != nil {
@@ -42,7 +42,7 @@ func _{{$svrType}}_{{.Name}}{{.Num}}_Hertz_Handler(s *thertz.Server, srv {{$svrT
 		h := s.Middleware(func(ctx context.Context, req interface{}) (interface{}, error) {
 			return srv.{{.Name}}(ctx, req.(*{{.Request}}))
 		}, c, string(ctx.Path()))
-		out, err := h(ctx.UserContext(), &in)
+		out, err := h(c, &in)
 		if err != nil {
 			panic(err)
 		}
