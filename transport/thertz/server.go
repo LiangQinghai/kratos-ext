@@ -82,14 +82,22 @@ func RawMiddleware(h ...Handler) ServerOption {
 	}
 }
 
+// NoRouteHandler 404 handler
+func NoRouteHandler(h Handler) ServerOption {
+	return func(s *Server) {
+		s.notFoundHandler = h
+	}
+}
+
 func NewServer(opts ...ServerOption) *Server {
 	srv := &Server{
-		network:    "tcp",
-		address:    ":8080",
-		middleware: matcher.New(),
-		enc:        DefaultResponseEncoder,
-		ene:        DefaultErrorEncoder,
-		timeout:    3 * time.Second,
+		network:         "tcp",
+		address:         ":8080",
+		middleware:      matcher.New(),
+		enc:             DefaultResponseEncoder,
+		ene:             DefaultErrorEncoder,
+		notFoundHandler: Default404Handler,
+		timeout:         3 * time.Second,
 	}
 	for _, opt := range opts {
 		opt(srv)
@@ -100,27 +108,30 @@ func NewServer(opts ...ServerOption) *Server {
 	if srv.tlsConf != nil {
 		hOpts = append(hOpts, server.WithTLS(srv.tlsConf))
 	}
-	// error handler
-	recovery.WithRecoveryHandler(srv.ene)
 	hertz := server.New(hOpts...)
 	srv.app = hertz
+	// error handler
+	srv.app.Use(recovery.Recovery(recovery.WithRecoveryHandler(srv.ene)))
+	// 404
+	srv.app.NoRoute(srv.notFoundHandler)
 	return srv
 }
 
 type Server struct {
-	appName    string
-	app        *server.Hertz
-	lis        net.Listener
-	tlsConf    *tls.Config
-	endpoint   *url.URL
-	err        error
-	network    string
-	address    string
-	timeout    time.Duration
-	middleware matcher.Matcher
-	rawMid     []Handler
-	enc        EncodeResponseFunc
-	ene        EncodeErrorFunc
+	appName         string
+	app             *server.Hertz
+	lis             net.Listener
+	tlsConf         *tls.Config
+	endpoint        *url.URL
+	err             error
+	network         string
+	address         string
+	timeout         time.Duration
+	middleware      matcher.Matcher
+	rawMid          []Handler
+	notFoundHandler Handler
+	enc             EncodeResponseFunc
+	ene             EncodeErrorFunc
 }
 
 func (s *Server) Start(ctx context.Context) error {

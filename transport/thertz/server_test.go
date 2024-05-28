@@ -58,7 +58,7 @@ func TestServer(t *testing.T) {
 	srv.Router().Any("/index/:id", newHandleFuncWrapper())
 	srv.Router().Any("/bind/:path", newBindHandler())
 	srv.app.Group("/errors").GET("/cause", func(c context.Context, ctx *app.RequestContext) {
-		panic(kratoserrors.BadRequest(
+		panic(kratoserrors.InternalServer(
 			"xxx",
 			"zzz",
 		).WithMetadata(map[string]string{"foo": "bar"}).
@@ -211,9 +211,8 @@ func testClient(t *testing.T, srv *Server) {
 		{http2.MethodPatch, "/index/1", http2.StatusOK},
 		{http2.MethodDelete, "/index/1", http2.StatusOK},
 
-		{http2.MethodGet, "/index/notfound", http2.StatusNotFound},
 		{http2.MethodGet, "/errors/cause", http2.StatusInternalServerError},
-		{http2.MethodGet, "/test/prefix/123111", http2.StatusOK},
+		{http2.MethodGet, "/test/prefix/123111", http2.StatusNotFound},
 	}
 	e, err := srv.Endpoint()
 	if err != nil {

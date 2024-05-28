@@ -15,7 +15,7 @@ type EncodeResponseFunc = func(ctx *app.RequestContext, v any)
 // EncodeErrorFunc is encode error func.
 type EncodeErrorFunc func(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte)
 
-func DefaultErrorEncoder(c context.Context, ctx *app.RequestContext, err interface{}, stack []byte) {
+func DefaultErrorEncoder(_ context.Context, ctx *app.RequestContext, err interface{}, _ []byte) {
 	se := errors.FromError(err.(error))
 	codec, _ := CodecForRequest(ctx, "Accept")
 	body, err := codec.Marshal(se)
@@ -53,4 +53,10 @@ func DefaultResponseEncoder(ctx *app.RequestContext, v any) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+var _404Error = errors.New(http.StatusNotFound, "Not Found", "Not Found")
+
+func Default404Handler(_ context.Context, _ *app.RequestContext) {
+	panic(_404Error)
 }
