@@ -1,4 +1,4 @@
-module github.com/LiangQinghai/kratos-ext/cmd/protoc-gen-go-fiber
+module github.com/LiangQinghai/kratos-ext/cmd/protoc-gen-go-hertz
 
 go 1.22
 
