@@ -6,6 +6,7 @@ import (
 	"github.com/LiangQinghai/kratos-ext/pkg/endpoint"
 	"github.com/LiangQinghai/kratos-ext/pkg/host"
 	"github.com/LiangQinghai/kratos-ext/pkg/matcher"
+	"github.com/go-kratos/kratos/v2/log"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/transport"
 	"github.com/gofiber/fiber/v2"
@@ -99,7 +100,8 @@ func NewServer(opts ...ServerOption) *Server {
 		enc:        DefaultResponseEncoder,
 		timeout:    3 * time.Second,
 		fiberConfig: &fiber.Config{
-			ErrorHandler: DefaultErrorEncoder,
+			ErrorHandler:          DefaultErrorEncoder,
+			DisableStartupMessage: true,
 		},
 	}
 	for _, opt := range opts {
@@ -129,9 +131,18 @@ func (s *Server) Start(_ context.Context) error {
 		return err
 	}
 	if s.tlsConf != nil {
-		return s.app.ListenTLSWithCertificate(s.address, s.tlsConf.Certificates[0])
+		err := s.app.ListenTLSWithCertificate(s.address, s.tlsConf.Certificates[0])
+		if err != nil {
+			return err
+		}
+	} else {
+		err := s.app.Listen(s.address)
+		if err != nil {
+			return err
+		}
 	}
-	return s.app.Listen(s.address)
+	log.Infof("[fiber] server listening on %s", s.endpoint.String())
+	return nil
 }
 
 func (s *Server) Stop(ctx context.Context) error {
