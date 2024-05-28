@@ -1,6 +1,7 @@
 package host
 
 import (
+	"fmt"
 	"net"
 	"strconv"
 )
@@ -27,6 +28,25 @@ func Port(lis net.Listener) (int, bool) {
 		return addr.Port, true
 	}
 	return 0, false
+}
+
+// ExtractFromLis returns a private addr and port.
+func ExtractFromLis(hostPort string, lis net.Listener) (string, error) {
+	addr, port, err := net.SplitHostPort(hostPort)
+	if err != nil && lis == nil {
+		return "", err
+	}
+	if lis != nil {
+		p, ok := Port(lis)
+		if !ok {
+			return "", fmt.Errorf("failed to extract port: %v", lis.Addr())
+		}
+		port = strconv.Itoa(p)
+		if len(addr) > 0 && (addr != "0.0.0.0" && addr != "[::]" && addr != "::") {
+			return net.JoinHostPort(addr, port), nil
+		}
+	}
+	return Extract(hostPort)
 }
 
 // Extract returns a private addr and port.
