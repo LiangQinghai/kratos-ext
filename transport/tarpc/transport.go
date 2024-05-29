@@ -1,9 +1,11 @@
 package tarpc
 
 import (
+	"context"
 	"github.com/go-kratos/kratos/v2/selector"
 	"github.com/go-kratos/kratos/v2/transport"
 	"google.golang.org/grpc/metadata"
+	"strings"
 )
 
 const (
@@ -83,4 +85,31 @@ func (mc headerCarrier) Keys() []string {
 // Values returns a slice of values associated with the passed key.
 func (mc headerCarrier) Values(key string) []string {
 	return metadata.MD(mc).Get(key)
+}
+
+// mapToHeaderCarrier map converter to header carrier
+func mapToHeaderCarrier(m map[string][]string) headerCarrier {
+	md := make(headerCarrier, len(m))
+	for k, val := range m {
+		key := strings.ToLower(k)
+		md[key] = val
+	}
+	return md
+}
+
+// FromArpcTransport get arpc Transport from context
+func FromArpcTransport(ctx context.Context) (*Transport, bool) {
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		return tr.(*Transport), true
+	}
+	return nil, false
+}
+
+// SetOperation sets the transport operation.
+func SetOperation(ctx context.Context, op string) {
+	if tr, ok := transport.FromServerContext(ctx); ok {
+		if tr, ok := tr.(*Transport); ok {
+			tr.operation = op
+		}
+	}
 }
