@@ -1,0 +1,17 @@
+syntax = "proto3";
+
+package tarpc;
+
+option go_package = "./;tarpc";
+
+service TestGrpcService {
+  rpc Echo(TestReq) returns(TestReply);
+}
+
+message TestReq {
+  string message = 1;
+}
+
+message TestReply {
+  string message = 1;
+}
