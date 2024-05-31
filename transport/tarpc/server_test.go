@@ -34,7 +34,7 @@ var helloWorldEcho = func(srv *Server) HandlerFunc {
 		if err != nil {
 			panic(err)
 		}
-		var in string
+		var in TestReq
 		err = srv.DecodeData(bytes, &in)
 		if err != nil {
 			panic(err)
@@ -47,8 +47,10 @@ var helloWorldEcho = func(srv *Server) HandlerFunc {
 				//	ct := tr.RequestHeader().Get("Content-Type")
 				//	fmt.Printf("server recieved ct header: %s\n", ct)
 				//}
-				//fmt.Printf("server recieved: %v\n", req)
-				return "Hello server.——From server", nil
+				fmt.Printf("server recieved: %v\n", req.(TestReq).Message)
+				return &TestReply{
+					Message: "Hello server.——From server",
+				}, nil
 			},
 		)
 		reply, _ := handler(ctx, in)
@@ -76,27 +78,22 @@ func TestServer(t *testing.T) {
 			//panic(err)
 		}
 	}()
-	client, err := arpc.NewClient(
-		func() (net.Conn, error) {
-			return net.DialTimeout("tcp", srv.endpoint.Host, time.Second*4)
-		},
+	client, err := Dail(
+		context.Background(),
+		WithEndpoint(srv.endpoint.Host),
 	)
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Stop()
-	req := &MessageWrapper{
-		Data: []byte("Hello server.——From client"),
-		Headers: map[string][]string{
-			"Content-Type": {"text/plain"},
-		},
+	req := TestReq{
+		Message: "Hello server.——From client",
 	}
-	var rsp MessageWrapper
-	err = client.Call("/echo", &req, &rsp, time.Minute*5)
+	var rsp TestReply
+	err = client.Call(context.Background(), "/echo", &req, &rsp)
 	if err != nil {
 		t.Fatal(err)
 	}
-	fmt.Printf("client read: [data: %v, header: %v, err: %v] \n", string(rsp.Data), rsp.Headers, rsp.Err)
+	fmt.Printf("client read: [data: %v, err: %v] \n", rsp.Message, err)
 	time.Sleep(time.Second)
 	if srv.Stop(ctx) != nil {
 		t.Errorf("expected nil got %v", srv.Stop(ctx))

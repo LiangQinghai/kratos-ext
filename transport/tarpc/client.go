@@ -2,16 +2,17 @@ package tarpc
 
 import (
 	"context"
-	"crypto/tls"
+	"fmt"
 	"github.com/go-kratos/kratos/v2/errors"
 	"github.com/go-kratos/kratos/v2/middleware"
 	"github.com/go-kratos/kratos/v2/registry"
 	"github.com/go-kratos/kratos/v2/selector"
 	"github.com/go-kratos/kratos/v2/selector/wrr"
 	"github.com/go-kratos/kratos/v2/transport"
-	"github.com/lesismal/arpc"
 	"github.com/lesismal/arpc/codec"
+	"github.com/lesismal/arpc/extension/micro"
 	"github.com/lesismal/arpc/util"
+	"net"
 	"time"
 )
 
@@ -56,13 +57,6 @@ func WithDiscovery(d registry.Discovery) ClientOption {
 	}
 }
 
-// WithTLSConfig with TLS config.
-func WithTLSConfig(c *tls.Config) ClientOption {
-	return func(o *clientOptions) {
-		o.tlsConf = c
-	}
-}
-
 // WithNodeFilter with select filters
 func WithNodeFilter(filters ...selector.NodeFilter) ClientOption {
 	return func(o *clientOptions) {
@@ -73,7 +67,6 @@ func WithNodeFilter(filters ...selector.NodeFilter) ClientOption {
 // clientOptions is arpc client config
 type clientOptions struct {
 	endpoint     string
-	tlsConf      *tls.Config
 	timeout      time.Duration
 	discovery    registry.Discovery
 	middleware   []middleware.Middleware
@@ -81,7 +74,7 @@ type clientOptions struct {
 	filters      []selector.NodeFilter
 }
 
-func Dail(ctx context.Context, opts ...ClientOption) (*arpc.Client, error) {
+func Dail(ctx context.Context, opts ...ClientOption) (*Client, error) {
 	options := clientOptions{
 		timeout:      time.Second * 5,
 		balancerName: balancerName,
@@ -89,12 +82,34 @@ func Dail(ctx context.Context, opts ...ClientOption) (*arpc.Client, error) {
 	for _, opt := range opts {
 		opt(&options)
 	}
-	return nil, nil
+	serviceManager := micro.NewServiceManager(
+		func(addr string) (net.Conn, error) {
+			return net.Dial("tcp", addr)
+		})
+	if options.discovery != nil {
+		watch, err := options.discovery.Watch(ctx, options.endpoint[13:])
+		if err != nil {
+			return nil, err
+		}
+		d := &discovery{
+			w:                watch,
+			serviceNamespace: "defaultServiceNamespace",
+			serviceManager:   serviceManager,
+			ctx:              ctx,
+		}
+		go d.watch()
+	} else {
+		serviceManager.AddServiceNodes(fmt.Sprintf("defaultServiceNamespace/%s/%s", options.endpoint, options.endpoint), "10")
+	}
+	return &Client{
+		opts:           &options,
+		serviceManager: serviceManager,
+	}, nil
 }
 
 type Client struct {
-	ac   *arpc.Client
-	opts *clientOptions
+	opts           *clientOptions
+	serviceManager micro.ServiceManager
 }
 
 func (c *Client) Call(ctx context.Context, method string, req any, resp any) error {
@@ -108,15 +123,19 @@ func (c *Client) Call(ctx context.Context, method string, req any, resp any) err
 		reqMsg := c.newMessage(ctx, req)
 		var replyMsg MessageWrapper
 		var err error
+		ac, err := c.serviceManager.ClientBy(c.opts.endpoint)
+		if err != nil {
+			return nil, err
+		}
 		if c.opts.timeout > 0 {
-			err = c.ac.Call(
+			err = ac.Call(
 				method,
 				reqMsg,
 				&replyMsg,
 				c.opts.timeout,
 			)
 		} else {
-			err = c.ac.CallWith(
+			err = ac.CallWith(
 				ctx,
 				method,
 				reqMsg,
@@ -128,6 +147,9 @@ func (c *Client) Call(ctx context.Context, method string, req any, resp any) err
 		}
 		if replyMsg.Err != nil {
 			return nil, replyMsg.Err
+		}
+		if replyMsg.Data == nil {
+			return nil, nil
 		}
 		err = util.BytesToValue(codec.DefaultCodec, replyMsg.Data, resp)
 		if err != nil {

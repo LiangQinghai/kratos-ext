@@ -2,7 +2,6 @@ package tarpc
 
 import (
 	"context"
-	"crypto/tls"
 	"github.com/LiangQinghai/kratos-ext/pkg/endpoint"
 	"github.com/LiangQinghai/kratos-ext/pkg/host"
 	"github.com/LiangQinghai/kratos-ext/pkg/matcher"
@@ -94,7 +93,6 @@ type Server struct {
 	arpcServer *arpc.Server
 	baseCtx    context.Context
 	lis        net.Listener
-	tlsConf    *tls.Config
 	err        error
 	network    string
 	address    string
@@ -228,7 +226,7 @@ func (s *Server) listenAndEndpoint() error {
 			s.err = err
 			return err
 		}
-		s.endpoint = endpoint.NewEndpoint(endpoint.Scheme("http", s.tlsConf != nil), addr)
+		s.endpoint = endpoint.NewEndpoint(endpoint.Scheme("arpc", false), addr)
 	}
 	return s.err
 }
