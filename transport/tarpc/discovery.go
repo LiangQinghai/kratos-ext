@@ -14,6 +14,7 @@ import (
 
 type discovery struct {
 	w                registry.Watcher
+	target           string
 	serviceNamespace string
 	serviceManager   micro.ServiceManager
 	ctx              context.Context
@@ -42,8 +43,8 @@ func (d *discovery) watch() {
 
 func (d *discovery) update(serviceInstances []*registry.ServiceInstance) {
 	for _, instance := range serviceInstances {
-		ept, _ := endpoint.ParseEndpoint(instance.Endpoints, endpoint.Scheme("grpc", false))
-		path := fmt.Sprintf("%s/%s/%s", d.serviceNamespace, instance.Name, ept)
+		ept, _ := endpoint.ParseEndpoint(instance.Endpoints, endpoint.Scheme("arpc", false))
+		path := fmt.Sprintf("%s/%s/%s", d.serviceNamespace, d.target, ept)
 		sweight := 10
 		if str, ok := instance.Metadata["weight"]; ok {
 			if weight, err := strconv.ParseInt(str, 10, 64); err == nil {

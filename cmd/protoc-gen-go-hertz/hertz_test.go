@@ -24,14 +24,6 @@ func TestSingleParam(t *testing.T) {
 	}
 }
 
-func TestSingleParamWithFiber(t *testing.T) {
-	path := "/test/{message.id}"
-	fiberPath := replacePathWithFiber(path)
-	if !reflect.DeepEqual(fiberPath, `/test/:message.id`) {
-		t.Fatalf(`want [%s]`, "/test/:message.id")
-	}
-}
-
 func TestTwoParametersReplacement(t *testing.T) {
 	path := "/test/{message.id}/{message.name=messages/*}"
 	m := buildPathVars(path)
@@ -57,14 +49,6 @@ func TestNoReplacePath(t *testing.T) {
 	path = "/test/{message.id=test/*}"
 	if !reflect.DeepEqual(replacePath("message.id", "test/*", path), "/test/{message.id:test/.*}") {
 		t.Fatal(`replacePath("message.id", "test/*", path) should be "/test/{message.id:test/.*}"`)
-	}
-}
-
-func TestReplacePathWithFiber(t *testing.T) {
-	path := "/test/{message.id}/{message.name:messages/*}"
-	fiberPath := replacePathWithFiber(path)
-	if !reflect.DeepEqual(fiberPath, `/test/:message.id/:message.name<regex(messages/*)>`) {
-		t.Fatal(`fiberPath should be "/test/:message.id/:message.name<regex(messages/*)>"`)
 	}
 }
 

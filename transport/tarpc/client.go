@@ -93,6 +93,7 @@ func Dail(ctx context.Context, opts ...ClientOption) (*Client, error) {
 		}
 		d := &discovery{
 			w:                watch,
+			target:           options.endpoint[13:],
 			serviceNamespace: "defaultServiceNamespace",
 			serviceManager:   serviceManager,
 			ctx:              ctx,
@@ -123,7 +124,7 @@ func (c *Client) Call(ctx context.Context, method string, req any, resp any) err
 		reqMsg := c.newMessage(ctx, req)
 		var replyMsg MessageWrapper
 		var err error
-		ac, err := c.serviceManager.ClientBy(c.opts.endpoint)
+		ac, err := c.serviceManager.ClientBy(c.opts.endpoint[13:])
 		if err != nil {
 			return nil, err
 		}

@@ -8,10 +8,8 @@ import (
 	"github.com/go-kratos/kratos/v2/middleware/metadata"
 	"github.com/go-kratos/kratos/v2/transport"
 	grpc2 "github.com/go-kratos/kratos/v2/transport/grpc"
-	"github.com/lesismal/arpc"
 	"github.com/lesismal/arpc/log"
-	grpc "google.golang.org/grpc"
-	"net"
+	"google.golang.org/grpc"
 	"runtime"
 	"strings"
 	"sync/atomic"
@@ -47,13 +45,13 @@ var helloWorldEcho = func(srv *Server) HandlerFunc {
 				//	ct := tr.RequestHeader().Get("Content-Type")
 				//	fmt.Printf("server recieved ct header: %s\n", ct)
 				//}
-				fmt.Printf("server recieved: %v\n", req.(TestReq).Message)
+				//fmt.Printf("server recieved: %v\n", req.(*TestReq).Message)
 				return &TestReply{
 					Message: "Hello server.——From server",
 				}, nil
 			},
 		)
-		reply, _ := handler(ctx, in)
+		reply, _ := handler(ctx, &in)
 		// invoke method
 		resp := srv.EncodeResponse(
 			ctx,
@@ -101,12 +99,12 @@ func TestServer(t *testing.T) {
 }
 
 func TestNewServer(t *testing.T) {
-	bGrpc(t)
-	fmt.Println("----------------------------------------")
-	fmt.Println("----------------------------------------")
-	fmt.Println("----------------------------------------")
-	fmt.Println("----------------------------------------")
-	fmt.Println("----------------------------------------")
+	//bGrpc(t)
+	//fmt.Println("----------------------------------------")
+	//fmt.Println("----------------------------------------")
+	//fmt.Println("----------------------------------------")
+	//fmt.Println("----------------------------------------")
+	//fmt.Println("----------------------------------------")
 	bArpc(t)
 }
 
@@ -259,12 +257,11 @@ func bArpc(t *testing.T) {
 		clientNum              = runtime.NumCPU() * 2
 		eachClientCoroutineNum = 10
 	)
-	clients := make([]*arpc.Client, clientNum)
+	clients := make([]*Client, clientNum)
 	for i := 0; i < clientNum; i++ {
-		client, err := arpc.NewClient(
-			func() (net.Conn, error) {
-				return net.DialTimeout("tcp", srv.endpoint.Host, time.Second*4)
-			},
+		client, err := Dail(
+			context.Background(),
+			WithEndpoint(srv.endpoint.Host),
 		)
 		if err != nil {
 			t.Fatal("NewClient failed:", err)
@@ -281,14 +278,9 @@ func bArpc(t *testing.T) {
 				var data = make([]byte, 512)
 				for k := 0; true; k++ {
 					_, _ = rand.Read(data)
-					req := &MessageWrapper{
-						Data: []byte("Hello server.——From client"),
-						Headers: map[string][]string{
-							"Content-Type": {"text/plain"},
-						},
-					}
-					rsp := &MessageWrapper{}
-					err = client.Call("/echo", req, rsp, time.Second*5)
+					req := TestReq{Message: "Hello server.——From client"}
+					var rsp TestReply
+					err = client.Call(context.Background(), "/echo", &req, &rsp)
 					if err == nil {
 						atomic.AddUint64(&qpsSec, 1)
 					}
@@ -335,8 +327,5 @@ func bArpc(t *testing.T) {
 	}
 	if srv.Stop(context.Background()) != nil {
 		t.Errorf("expected nil got %v", srv.Stop(ctx))
-	}
-	for _, client := range clients {
-		client.Stop()
 	}
 }

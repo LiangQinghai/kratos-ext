@@ -23,7 +23,7 @@ var (
 	_ transport.Endpointer = (*Server)(nil)
 )
 
-// ServerOption is a fiber framework option
+// ServerOption is a hertz framework option
 type ServerOption func(*Server)
 
 // Network set network
@@ -75,7 +75,7 @@ func AppName(name string) ServerOption {
 	}
 }
 
-// RawMiddleware fiber mid
+// RawMiddleware hertz mid
 func RawMiddleware(h ...Handler) ServerOption {
 	return func(s *Server) {
 		s.rawMid = append(s.rawMid, h...)

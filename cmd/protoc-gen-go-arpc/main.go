@@ -8,9 +8,7 @@ import (
 )
 
 var (
-	showVersion     = flag.Bool("version", false, "print the version and exit")
-	omitempty       = flag.Bool("omitempty", true, "omit if google.api is empty")
-	omitemptyPrefix = flag.String("omitempty_prefix", "", "omit if google.api is empty")
+	showVersion = flag.Bool("version", false, "print the version and exit")
 )
 
 func main() {
@@ -18,7 +16,7 @@ func main() {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("protoc-gen-go-hertz %v\n", release)
+		fmt.Printf("protoc-gen-go-fiber %v\n", release)
 		return
 	}
 
@@ -30,7 +28,7 @@ func main() {
 			if !f.Generate {
 				continue
 			}
-			generateFile(gen, f, *omitempty, *omitemptyPrefix)
+			generateFile(gen, f)
 		}
 		return nil
 	})

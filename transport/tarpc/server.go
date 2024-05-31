@@ -91,7 +91,6 @@ func NewServer(opts ...ServerOption) *Server {
 
 type Server struct {
 	arpcServer *arpc.Server
-	baseCtx    context.Context
 	lis        net.Listener
 	err        error
 	network    string
@@ -111,19 +110,22 @@ func (s *Server) Endpoint() (*url.URL, error) {
 	return s.endpoint, nil
 }
 
-func (s *Server) Start(ctx context.Context) error {
+func (s *Server) Start(_ context.Context) error {
 	err := s.listenAndEndpoint()
 	if err != nil {
 		return err
 	}
 	log.Infof("[ARPC] server listening on: %s", s.lis.Addr().String())
-	s.baseCtx = ctx
-	return s.arpcServer.Serve(s.lis)
+	err = s.arpcServer.Serve(s.lis)
+	if err != nil && !errors.Is(err, net.ErrClosed) {
+		return err
+	}
+	return nil
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *Server) Stop(_ context.Context) error {
 	log.Info("[ARPC] server stopping")
-	return s.arpcServer.Shutdown(ctx)
+	return s.arpcServer.Stop()
 }
 
 func (s *Server) Handle(m string, handler HandlerFunc) *Server {
@@ -138,6 +140,18 @@ func (s *Server) Middleware(ctx context.Context, m middleware.Handler) middlewar
 	return func(ctx context.Context, req interface{}) (interface{}, error) {
 		return nil, NoHandlerError
 	}
+}
+
+func (s *Server) Timeout(ctx context.Context) (context.Context, context.CancelFunc) {
+	var (
+		cancel context.CancelFunc
+	)
+	if s.timeout > 0 {
+		ctx, cancel = context.WithTimeout(ctx, s.timeout)
+	} else {
+		ctx, cancel = context.WithCancel(ctx)
+	}
+	return ctx, cancel
 }
 
 func (s *Server) DecodeData(data []byte, target any) error {
@@ -192,16 +206,6 @@ func (s *Server) Write(c *Ctx, data any) {
 }
 
 func (s *Server) initTransport(ctx context.Context, reqHeader map[string][]string) context.Context {
-	var (
-		cancel context.CancelFunc
-	)
-	if s.timeout > 0 {
-		ctx, cancel = context.WithTimeout(ctx, s.timeout)
-	} else {
-		ctx, cancel = context.WithCancel(ctx)
-	}
-	defer cancel()
-
 	tr := Transport{
 		endpoint:    s.endpoint.String(),
 		reqHeader:   mapToHeaderCarrier(reqHeader),
